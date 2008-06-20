@@ -1,21 +1,55 @@
 # Emailer Configuration Parameters
 #
 # These parameters are broken out by multiple projects where each project name is the main node.
+# All fields are required.
 #
+# project_identifier -- Unique project identifier. Check projects settings in admin.
 # email_server -- The email server name;  This plugin currently only supports IMAP;  e.g. imap.gmail.com
 # email_login -- The login name of the user which this tool will use to retrieve emails;
 # email_password -- The password of the above login
 # email_port -- The port the email server uses;  (Gmail uses port 993)
 # email_folder -- The folder name you would like your email messages retrieved from;
 # use_ssl -- If your email server requires you to use ssl to retrieve messages;
+# email_white_list -- If the from email does not include the string then it will not be imported
+# email_to -- This is used to filter the IMAP search results by TO address. It can be a partial email address.
+# email_primary -- This is used as the "From" when sending emails. It must be a valid email address.
+# email_autoreply -- Whether the author of the new issue receives an autoreply. 
+#                     (Note: Individual "app/views" need to be created for each trackers autoreply)
+# issue_tracker -- The tracker to assign the issue to within the specified project.
+# issue_status -- The status assigned to the issue (currently not implemented).
 #
 # THIS IS AN EXAMPLE.  REPLACE THIS WITH YOUR REAL SERVER DATA AND COPY TO: {RAILS_ROOT}/config DIRECTORY
 # OF YOUR CORE REDMINE PROJECT.
 
-example_project:
-    email_server: imap.gmail.com
-    email_login: email_user@example.cc
-    email_password: my_password
-    email_port: 993
-    email_folder: support_issues
-    use_ssl: true
+helpdesk: &helpdesk
+  email_server: mail.uni.edu.au
+  email_login: helpdesk
+  email_password: xxxxx
+  email_port: 143
+  email_folder: INBOX
+  use_ssl: false
+  project_identifier: help-desk
+  issue_status: New
+  email_autoreply: false
+
+site1:
+  <<: *helpdesk
+  email_to: ithelp@site1.uni.edu.au
+  email_white_list: uni.edu.au health.wa.gov.au
+  issue_tracker: Site1
+  email_primary: ithelp@site1.uni.edu.au
+
+site2:
+  <<: *helpdesk
+  email_to: @site2.uni.edu.au
+  email_white_list: uni.edu.au health.wa.gov.au
+  issue_tracker: Site2
+  email_primary: ithelp@site2.uni.edu.au
+  email_autoreply: true
+
+site3:
+  <<: *helpdesk
+  email_to: site3
+  email_white_list: uni.edu.au health.wa.gov.au
+  issue_tracker: Site3
+  email_primary: ithelp@site3.uni.edu.au
