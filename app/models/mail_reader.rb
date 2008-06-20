@@ -1,12 +1,9 @@
 class MailReader < ActionMailer::Base
 
   def receive(email)         
-    # If the email exists for a user in the current project,
-    # use that user as the author.  Otherwise, use the first
-    # user that is returned from the Member model
+    # Check if the user/author exists for the email. 
+    # If they don't then create the user.
     
-    # author = User.find_by_mail @@from_email, :select=>"users.id", :joins=>"inner join members on members.user_id = users.id",
-    #                           :conditions=>["members.project_id=?", @@project.id]
     author = User.find_by_mail @@from_email
     
     if author.nil?
@@ -39,9 +36,11 @@ class MailReader < ActionMailer::Base
     @PRIORITY_MAPPING = {}
     priorities.each { |priority| @PRIORITY_MAPPING[priority.name] = priority }
 
-    tracker_id = status_id = nil
-    tracker_id = Tracker.find_by_name(@@config[:issue_tracker]).id unless Tracker.find_by_name(@@config[:issue_tracker]).nil?
-    status_id = IssueStatus.find_by_name(@@config[:issue_status]).id unless IssueStatus.find_by_name(@@config[:issue_status]).nil?
+    tracker = Tracker.find_by_name(@@config[:issue_tracker])
+    status = IssueStatus.find_by_name(@@config[:issue_status])
+    
+    tracker_id = tracker.id unless tracker.nil?
+    status_id = status.id unless status.nil?
 
     #check if the email subject includes an issue id
     issue_id = email.subject.scan(/#(\d+)/).flatten
@@ -60,7 +59,6 @@ class MailReader < ActionMailer::Base
       puts "Creating new issue"
       issue = Issue.create(
           :subject => email.subject,                                          
-#          :description => email.body.gsub(/<(html|HTML)[^<]*<\/(html|HTML)>/im,'').sub(/<\/?[^>]*>/, ''),
           :description => email.body.split(/<(HTML|html)/)[0].gsub(/<\/?[^>]*>/, ''),
           :priority_id => @DEFAULT_PRIORITY.id, #@PRIORITY_MAPPING[@priority].id || @DEFAULT_PRIORITY.id,
           :project_id => @@project.id,
@@ -76,7 +74,6 @@ class MailReader < ActionMailer::Base
       else  
         # send autoreply
         MailReader.deliver_autoreply(issue) if @@config[:email_autoreply] == true
-        
       end
 
     else
@@ -136,10 +133,10 @@ class MailReader < ActionMailer::Base
         imap.search(['OR', 'TO', @@config[:email_to], 'CC', @@config[:email_to]]).each do |message_id|
           msg = imap.fetch(message_id,'RFC822')[0].attr['RFC822']
           
-          #get the emails "from" and "to"
+          #get the emails "from"
           @@from_name, @@from_email = from_email_address(imap, message_id)
           
-          # if the email has no "to" then the envelope has issues
+          # if the email has no "from" email then the envelope has issues
           if @@from_email.nil?
             puts "Error with message envelope"
             
@@ -167,8 +164,8 @@ class MailReader < ActionMailer::Base
     email_to = issue.author.mail
 
     redmine_headers 'Project' => issue.project.identifier,
-                   'Issue-Id' => issue.id,
-                   'Issue-Author' => issue.author.login
+                    'Issue-Id' => issue.id,
+                    'Issue-Author' => issue.author.login
     redmine_headers 'Issue-Assignee' => issue.assigned_to.login if issue.assigned_to
 
     r = issue.recipients
